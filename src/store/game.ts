@@ -100,8 +100,8 @@ export default {
     },
   },
   actions: {
-    pushFallingElement({ commit }: { commit: Commit }) {
-      commit(SET_FALLING_ELEMENT, createRandomElement());
+    pushFallingElement({ commit, getters }: { commit: Commit, getters: { leftTorque: number, rightTorque: number }}) {
+      commit(SET_FALLING_ELEMENT, createRandomElement('left', { leftT: getters.leftTorque, rightT: getters.rightTorque }));
     },
     async moveFallingElementToRightArray({ state, commit, dispatch }: { commit: Commit, state: State, dispatch: Dispatch }) {
       const isLose = await dispatch('pushAndCheckIfExtraWeight', state.fallingWeight);
