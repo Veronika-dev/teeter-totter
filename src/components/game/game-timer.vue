@@ -33,6 +33,7 @@ const stopTimer = () => {
   if (interval) clearInterval(interval);
 };
 const runTimer = () => {
+  stopTimer();
   interval = setInterval(() => {
     decreaseTimer();
     if (timer.value === 0) stopTimer();
@@ -40,8 +41,7 @@ const runTimer = () => {
 };
 
 watch(gameStatus, (nv) => {
-  console.log(nv);
-  if (nv === GameStatus.PLAYING) {
+  if (nv === GameStatus.PLAYING || nv === GameStatus.DEMO) {
     runTimer();
   } else {
     stopTimer();
