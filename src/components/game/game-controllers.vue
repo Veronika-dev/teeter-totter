@@ -37,6 +37,8 @@ const displayingGameStatus = computed(() => {
       return 'Game Over';
     case GameStatus.DEMO:
       return 'Demo Mode';
+    case GameStatus.WIN:
+      return 'You win!';
     default:
       return '';
   }

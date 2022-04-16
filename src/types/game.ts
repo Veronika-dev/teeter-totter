@@ -10,6 +10,7 @@ export enum GameStatus {
   NOT_STARTED = 'NOT_STARTED',
   FAILED = 'FAILED',
   DEMO = 'DEMO',
+  WIN = 'WIN',
 }
 
 export type TBgColor = keyof typeof BgColor;
@@ -31,4 +32,6 @@ export interface State {
   fallingWeight: IGameElement | null;
   gameStatus: TGameStatus;
   bending: number;
+  timer: number;
+  pushAfterContinue: boolean;
 }

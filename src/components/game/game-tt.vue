@@ -35,6 +35,7 @@ const isGameOver = computed(() => gameStatus.value === GameStatus.FAILED);
   transition: transform 1s linear;
   .is-game-over & {
     animation: fallTT .6s forwards cubic-bezier(.77,1.12,0,.16);
+    animation-delay: 1s;
   }
   &--container {
     position: relative;
@@ -51,6 +52,7 @@ const isGameOver = computed(() => gameStatus.value === GameStatus.FAILED);
     margin-top: -5px;
     .is-game-over & {
       animation: fallStand .6s forwards cubic-bezier(.77,1.12,0,.16);
+      animation-delay: 1s;
     }
   }
 }

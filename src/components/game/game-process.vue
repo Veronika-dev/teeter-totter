@@ -25,8 +25,10 @@ const gameStatus = computed(() => store.getters['game/gameStatus']);
 provide('gameStatus', gameStatus);
 const isDemoMode = computed(() => gameStatus.value === GameStatus.DEMO);
 
+let value = 0;
 const delayInitial = computed(() => {
-  const decr = 5000 - (weights.value.length / 2) * 100;
+  const decr = 5200 - weights.value.length * 200;
+  value += decr;
   return decr > 1000 ? decr : 1000;
 });
 provide('delayInitial', delayInitial);
@@ -81,10 +83,11 @@ onBeforeUnmount(() => {
 });
 </script>
 <style lang="scss" scoped>
+@import "../../assets/styles/vars";
 .game-process {
   height: 100vh;
   min-height: 400px;
-  background: #e8eeff;
+  background: $backgroundColor;
   padding-top: 200px;
   display: flex;
   flex-direction: column;

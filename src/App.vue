@@ -2,6 +2,7 @@
   <div class="d-flex justify-between content-block">
     <div>
       <game-state />
+      <game-timer />
     </div>
     <div>
       <game-controllers />
@@ -17,6 +18,7 @@
 import GameControllers from '@/components/game/game-controllers.vue';
 import GameState from '@/components/game/game-state.vue';
 import GameProcess from '@/components/game/game-process.vue';
+import GameTimer from '@/components/game/game-timer.vue';
 </script>
 
 <style lang="scss">

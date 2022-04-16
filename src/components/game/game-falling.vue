@@ -54,7 +54,9 @@ const restartGame = () => {
   startAnimation();
 };
 watch(gameStatus, (nv, ov) => {
-  if (nv === GameStatus.PAUSED) {
+  if (nv === GameStatus.WIN) {
+    if (timeoutEnd) clearTimeout(timeoutEnd);
+  } else if (nv === GameStatus.PAUSED) {
     pauseGame();
   } else if (nv === GameStatus.PLAYING && ov === GameStatus.PAUSED) {
     restartGame();

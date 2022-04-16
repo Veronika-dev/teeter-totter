@@ -1,7 +1,7 @@
 import {
   GameStatus, IGameElement, State, TGameStatus,
 } from '@/types/game';
-import { MAX_BENDING, TT_WIDTH } from '@/utils/constants';
+import { MAX_BENDING, TT_WIDTH, TIMER_INITIAL } from '@/utils/constants';
 import createRandomElement from '@/utils/createRandomElement';
 import { Commit, Dispatch } from 'vuex';
 
@@ -11,9 +11,13 @@ const CHANGE_FALLING_ELEMENT = 'CHANGE_FALLING_ELEMENT';
 const PUSH_WEIGHT = 'PUSH_WEIGHT';
 const CHANGE_STATUS_GAME = 'CHANGE_STATUS_GAME';
 const CLEAR_GAME_DATA = 'CLEAR_GAME_DATA';
+const CHANGE_TIMER_VALUE = 'CHANGE_TIMER_VALUE';
+const SET_PUSH_AFTER_CONTINUE = 'SET_PUSH_AFTER_CONTINUE';
 
 const getTotalWeight = (array: IGameElement[]) => array.reduce((acc: number, item: IGameElement) => acc + item.weight, 0);
 const getTorque = (array: IGameElement[]) => array.reduce((acc: number, item: IGameElement) => acc + item.weight * item.offset, 0);
+
+let timeout: number | null = null;
 
 export default {
   namespaced: true,
@@ -22,10 +26,15 @@ export default {
     weights: [createRandomElement('right')],
     bending: 0,
     fallingWeight: null,
+    timer: TIMER_INITIAL,
+    pushAfterContinue: false,
   }),
   getters: {
     gameStatus(state: State): TGameStatus {
       return state.gameStatus;
+    },
+    timer(state: State): number {
+      return state.timer;
     },
     weights(state: State): IGameElement[] {
       return state.weights;
@@ -53,7 +62,7 @@ export default {
     },
     bending(state: State, getters: { totalLeftWeight: number, leftTorque: number, rightTorque: number }): number {
       if (!getters.totalLeftWeight) {
-        return MAX_BENDING;
+        return 0;
       }
       const isToLeft = getters.leftTorque > getters.rightTorque;
       const firstEl = isToLeft ? getters.leftTorque : getters.rightTorque;
@@ -78,8 +87,16 @@ export default {
       state.weights.push(payload);
     },
     [CLEAR_GAME_DATA](state: State) {
+      state.pushAfterContinue = false;
+      state.timer = TIMER_INITIAL;
       state.fallingWeight = null;
       state.weights = [createRandomElement('right')];
+    },
+    [CHANGE_TIMER_VALUE](state: State, value : number) {
+      state.timer = value;
+    },
+    [SET_PUSH_AFTER_CONTINUE](state: State, value = true) {
+      state.pushAfterContinue = value;
     },
   },
   actions: {
@@ -90,9 +107,7 @@ export default {
       const isLose = await dispatch('pushAndCheckIfExtraWeight', state.fallingWeight);
       commit(REMOVE_FALLING_ELEMENT);
       if (!isLose) {
-        setTimeout(() => {
-          dispatch('nextGameStep');
-        }, 1000); // wait for animation
+        dispatch('nextGameStep');
       }
     },
     pushAndCheckIfExtraWeight(
@@ -113,16 +128,23 @@ export default {
       return false;
     },
     async nextGameStep({
-      state, dispatch, getters,
+      state, dispatch, getters, commit,
     } : {
-      state: State, dispatch: Dispatch, getters: { bending: number },
+      state: State, dispatch: Dispatch, getters: { bending: number }, commit: Commit,
     }) {
       if (state.gameStatus !== GameStatus.PLAYING && state.gameStatus !== GameStatus.DEMO) return;
       if (Math.abs(getters.bending) >= MAX_BENDING) {
         dispatch('loseGame');
       } else {
-        const isLose = await dispatch('pushAndCheckIfExtraWeight', createRandomElement('right'));
-        if (!isLose) dispatch('pushFallingElement');
+        timeout = null;
+        timeout = setTimeout(async () => {
+          if (state.gameStatus !== GameStatus.PLAYING && state.gameStatus !== GameStatus.DEMO) {
+            commit(SET_PUSH_AFTER_CONTINUE, true);
+            return;
+          }
+          const isLose = await dispatch('pushAndCheckIfExtraWeight', createRandomElement('right'));
+          if (!isLose) dispatch('pushFallingElement');
+        }, 1000); // wait for animation
       }
     },
     moveFallingElement({ state, commit }: { commit: Commit, state: State }, direction: 'left' | 'right') {
@@ -135,29 +157,48 @@ export default {
       }
     },
     startGame({ commit, dispatch, state }: { commit: Commit, dispatch: Dispatch, state: State }) {
+      if (timeout) clearTimeout(timeout);
       if (state.gameStatus === GameStatus.FAILED || state.gameStatus === GameStatus.DEMO) {
         commit(CLEAR_GAME_DATA);
       }
       commit(CHANGE_STATUS_GAME, GameStatus.PLAYING);
       dispatch('pushFallingElement');
     },
-    continueGame({ commit }: { commit: Commit }) {
+    async continueGame({ commit, dispatch, state }: { commit: Commit, dispatch: Dispatch, state: State }) {
       commit(CHANGE_STATUS_GAME, GameStatus.PLAYING);
+      if (state.pushAfterContinue) {
+        const isLose = await dispatch('pushAndCheckIfExtraWeight', createRandomElement('right'));
+        if (!isLose) dispatch('pushFallingElement');
+        commit(SET_PUSH_AFTER_CONTINUE, false);
+      }
     },
     restartGame({ commit, dispatch }: { commit: Commit, dispatch: Dispatch }) {
       commit(CLEAR_GAME_DATA);
       dispatch('startGame');
     },
-    pauseGame({ commit }: { commit: Commit }) {
-      commit(CHANGE_STATUS_GAME, GameStatus.PAUSED);
+    pauseGame({ commit, state }: { commit: Commit, state: State }) {
+      if (state.gameStatus === GameStatus.PLAYING) {
+        commit(CHANGE_STATUS_GAME, GameStatus.PAUSED);
+      }
     },
     loseGame({ commit }: { commit: Commit }) {
       commit(CHANGE_STATUS_GAME, GameStatus.FAILED);
+    },
+    winGame({ commit }: { commit: Commit }) {
+      commit(CHANGE_STATUS_GAME, GameStatus.WIN);
+      commit(REMOVE_FALLING_ELEMENT);
     },
     startDemo({ commit, dispatch }: { commit: Commit, dispatch: Dispatch }) {
       commit(CLEAR_GAME_DATA);
       commit(CHANGE_STATUS_GAME, GameStatus.DEMO);
       dispatch('pushFallingElement');
+    },
+    decreaseTimer({ commit, state, dispatch }: { state: State, commit: Commit, dispatch: Dispatch }) {
+      const newValue = state.timer - 1;
+      commit(CHANGE_TIMER_VALUE, newValue);
+      if (newValue === 0) {
+        dispatch('winGame');
+      }
     },
   },
 };
